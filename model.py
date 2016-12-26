@@ -8,6 +8,7 @@ import numpy as np
 from six.moves import xrange
 import tensorflow as tf
 from tensorflow.python.ops import rnn
+import data_utils
 
 MAX_SIZE = 50
 
@@ -65,3 +66,32 @@ class discriminator(object):
     input_feed[self.seq_length] = seq_length
     input_feed[self.target] = target
 
+    output_feed = [self.loss]
+    output_feed.append(self.output)
+
+    # Start running
+    outputs = session.run(output_feed, input_feed)
+   
+    # Return loss and output probabilities
+    return outputs[0], outputs[1]
+
+  def get_batch(self, data):
+    # TODO find target(label)
+    encoder_inputs = []
+    encoder_length = []
+    for _ in xrange(self.batch_size):
+      encoder_input = random.choice(data)
+      length = len(encoder_input)
+      encoder_pad = [data_utils.PAD_ID] * (self.max_length - length)
+    
+      encoder_inputs.append(list(encoder_input + encoder_pad))
+      encoder_length.append(length)
+
+    batch_encoder_inputs, batch_length = [], []
+    for length_idx in xrange(self.max_length):
+      batch_encoder_inputs.append(
+        np.array([encoder_inputs[batch_idx][length_idx]
+                  for batch_idx in xrange(self.batch_size)], dtype = np.int32))
+
+    for length_idx in xrange(self.max_length):
+      batch_
