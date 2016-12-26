@@ -76,6 +76,8 @@ class discriminator(object):
     return outputs[0], outputs[1]
 
   def get_batch(self, data):
+    
+    # Notice that the data structure is different from ones coming from seq2seq model
     # TODO find target(label)
     encoder_inputs = []
     encoder_length = []
@@ -87,11 +89,5 @@ class discriminator(object):
       encoder_inputs.append(list(encoder_input + encoder_pad))
       encoder_length.append(length)
 
-    batch_encoder_inputs, batch_length = [], []
-    for length_idx in xrange(self.max_length):
-      batch_encoder_inputs.append(
-        np.array([encoder_inputs[batch_idx][length_idx]
-                  for batch_idx in xrange(self.batch_size)], dtype = np.int32))
-
-    for length_idx in xrange(self.max_length):
-      batch_
+    batch_length = np.array(encoder_length, dtype = np.int32)
+    batch_input  = np.array(encoder_inputs, dtype = np.int32)
