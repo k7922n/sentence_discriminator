@@ -75,19 +75,30 @@ class discriminator(object):
     # Return loss and output probabilities
     return outputs[0], outputs[1]
 
-  def get_batch(self, data):
+  # data_1 is label 1 data, and data_2 is label 0 data
+  # Both are tokenized data which are already been read
+  def get_batch(self, data_1, data_2):
     
     # Notice that the data structure is different from ones coming from seq2seq model
-    # TODO find target(label)
     encoder_inputs = []
     encoder_length = []
+    target = []
+
     for _ in xrange(self.batch_size):
-      encoder_input = random.choice(data)
+      if random.uniform(0, 1) < 0.5:
+        encoder_input = random.choice(data_1)
+        target.append([1, 0])
+      else: 
+        encoder_input = random.choice(data_2)
+        target.append([0, 1])
       length = len(encoder_input)
       encoder_pad = [data_utils.PAD_ID] * (self.max_length - length)
     
       encoder_inputs.append(list(encoder_input + encoder_pad))
       encoder_length.append(length)
 
-    batch_length = np.array(encoder_length, dtype = np.int32)
-    batch_input  = np.array(encoder_inputs, dtype = np.int32)
+    batch_length  = np.array(encoder_length, dtype = np.int32)
+    batch_input   = np.array(encoder_inputs, dtype = np.int32)
+    batch_targets = np.array(target, dtype = np.float32)
+
+  return batch_input, batch_length, batch_targets
