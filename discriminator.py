@@ -21,26 +21,26 @@ train_dir = 'save/'
 
 def create_model(session):
   
-  model = model.discriminator(UNIT_SIZE, BATCH_SIZE, NUM_LAYER)
+  dis = model.discriminator(UNIT_SIZE, BATCH_SIZE, NUM_LAYER, MAX_SENTENCE_LENGTH)
   ckpt = tf.train.get_checkpoint_state(train_dir)
   if ckpt and tf.gfile.Exists(ckpt.model_checkpoint_path):
     print("Reading model parameters from %s" % ckpt.model_checkpoint_path)
-    model.saver.restore(session, ckpt.model_checkpoint_path)
+    dis.saver.restore(session, ckpt.model_checkpoint_path)
   else:
     print("Creating model with fresh parameters.")
-
-  return model
+    session.run(tf.initialize_all_variables())
+  return dis
 
 def train():
   # FIXME  need to read and process two files at the same time
   # TODO   path_2
-  data_utils.prepare_whole_data('corpus/movie_lines_cleaned.txt', 'path_2', '60000')
-  
+  data_utils.prepare_whole_data('corpus/movie_lines_cleaned.txt', 'corpus/movie_lines_cleaned.txt', '60000')
+
   with tf.Session() as sess:
     print("Creating model containing %s layers and %s units" % (NUM_LAYER, UNIT_SIZE)) 
-    model = create_model(session) 
+    model = create_model(sess) 
     # data_set contains the whole training data stored in a list
-    data_set_1 = data_utils.read_token_data('corpus/')
+    data_set_1 = data_utils.read_token_data('corpus/movie_lines_cleaned.txt')
     data_set_2 = data_utils.read_token_data('corpus/movie_lines_cleaned.txt')
  
     current_step = 0
@@ -59,4 +59,6 @@ def train():
         model.saver.save(sess, checkpoint_path, global_step = current_step)
         print("Loss: %s" % loss)
         loss = 0
-          
+  
+if __name__ == '__main__':
+  train()        

@@ -23,10 +23,10 @@ def tokenizer(sentence):
 # Form vocab map (vocab to index) according to maxsize
 def form_vocab_mapping(filename_1, filename_2, max_size):
   
-  output_path = filenamei_1 + str(max_size) + '.mapping'
+  output_path = filename_1 + str(max_size) + '.mapping'
   
   if gfile.Exists(output_path):
-    print('Mapping of %s has already been formed!' % filename)
+    print('Mapping of %s has already been formed!' % filename_1)
   else:
     print('Forming mapping file according to %s and %s' % (filename_1, filename_2))  
     print('Max vocabulary size : %s' % max_size)
@@ -36,19 +36,18 @@ def form_vocab_mapping(filename_1, filename_2, max_size):
       with gfile.GFile(filename_2, mode = 'rb') as f_2:
         f = [f_1, f_2]
         for fil in f:
+          counter = 0
           for line in fil:
-            counter = 0
-            for line in f:
-              counter += 1
-              if counter % 100000 == 0:
-                print("  Processing to line %s" % counter)
-              tokens = tokenizer(line)   
-       
-              for word in tokens:
-                if word in vocab:
-                  vocab[word] += 1
-                else:
-                  vocab[word] = 1
+            counter += 1
+            if counter % 100000 == 0:
+              print("  Processing to line %s" % counter)
+            tokens = tokenizer(line)   
+     
+            for word in tokens:
+              if word in vocab:
+                vocab[word] += 1
+              else:
+                vocab[word] = 1
       
         vocab_list = [_UNK, _PAD] + sorted(vocab, key = vocab.get, reverse = True)
         if len(vocab_list) > max_size:
@@ -98,7 +97,7 @@ def file_to_token(file_path, vocab_map):
 
           output_file.write(" ".join([str(tok) for tok in token_ids]) + '\n')
 
-def prepare_whole_data(input_path, max_size):
+def prepare_whole_data(input_path_1, input_path_2, max_size):
   form_vocab_mapping(input_path_1, input_path_2, max_size)
   map_path = input_path_1 + str(max_size) + '.mapping'  
   vocab_map = read_map(map_path)
@@ -110,6 +109,7 @@ def read_token_data(file_path):
   token_path = file_path + '.token'
   if gfile.Exists(token_path):
     data_set = []
+    print(" Reading from file %s" % file_path)
     with gfile.GFile(token_path, mode = 'r') as t_file:
       counter = 0
       token_file = t_file.readline()
@@ -128,8 +128,9 @@ def read_token_data(file_path):
     raise ValueError("Can not find token file %s" % token_path)
 
 if __name__ == "__main__":
-  prepare_whole_data('corpus/movie_lines_cleaned.txt', 60000)
-  data_set = read_token_data('corpus/movie_lines_cleaned.txt')
-  print(len(data_set))
-  print(data_set[0])
+  prepare_whole_data('corpus/movie_lines_cleaned.txt', 'corpus/movie_lines_cleaned.txt', 60000)
+  data_set_1 = read_token_data('corpus/movie_lines_cleaned.txt')
+  data_set_2 = read_token_data('corpus/movie_lines_cleaned.txt')
+  print(len(data_set_1))
+  print(data_set_1[0])
 

@@ -10,35 +10,50 @@ import tensorflow as tf
 from tensorflow.python.ops import rnn
 import data_utils
 
-MAX_SIZE = 50
+VOCAB_SIZE = 60000
 
 class discriminator(object):
 
-  def __init__(self, unit_size, batch_size, num_layers):
+  def __init__(self, unit_size, batch_size, num_layers, max_length):
     self.unit_size = unit_size
     self.batch_size = batch_size
     self.num_layers = num_layers
+    self.max_length = max_length
     self.build_model()
   
     self.saver = tf.train.Saver(tf.all_variables())
   
-  def build_model():
+  def build_model(self):
     # Default LSTM cell
     single_cell = tf.nn.rnn_cell.LSTMCell(self.unit_size, state_is_tuple = False)
-    if num_layers > 1:
-      cell = tf.nn.rnn_cell.MultiRNNCell([single_cell] * num_layers)
+    if self.num_layers > 1:
+      cell = tf.nn.rnn_cell.MultiRNNCell([single_cell] * self.num_layers)
     else:
       cell = single_cell
     # Specify inputs
-    self.encoder_inputs = tf.placeholder(tf.float32, shape=[None, MAX_SIZE, self.unit_size])
+    #self.encoder_inputs = tf.placeholder(tf.float32, shape=[None, self.max_length, self.unit_size])
+    self.encoder_inputs = tf.placeholder(tf.int32, shape=[None, self.max_length])
+    # Form embedding look up
+    embeddings = tf.Variable(tf.random_uniform([VOCAB_SIZE, self.unit_size]))
+    embedded = tf.nn.embedding_lookup(embeddings, self.encoder_inputs)
+     
     # Specify sequence length
     self.seq_length = tf.placeholder(tf.int32, shape = [None])
     # Specify target, in this case, binary classification
     self.target = tf.placeholder(tf.float32, shape = [None, 2])
     # Use Dynamic rnn module
-    self.outputs, self.final_state = rnn.dynamic_rnn(cell, self.encoder_inputs, self.seq_length)
+    self.outputs, self.final_state = rnn.dynamic_rnn(cell, embedded, self.seq_length, dtype = tf.float32)
+    # for debug
+    '''
+    print(self.encoder_inputs.get_shape())
+    print(self.unit_size) 
+    print(self.outputs.get_shape())
+    print(self.final_state.get_shape())
+    exit()
+    '''   
 
-    hidden_weight_1 = tf.Variable(tf.random_normal([2 * self.unit_size, 512], dtype = tf.float32))
+    # It seems like dynamic_rnn final_state has 4 * num_unit dimension
+    hidden_weight_1 = tf.Variable(tf.random_normal([4 * self.unit_size, 512], dtype = tf.float32))
     hidden_bias_1 = tf.Variable(tf.random_normal([512], dtype = tf.float32))
 
     hidden_weight_2 = tf.Variable(tf.random_normal([512, 128], dtype = tf.float32))
@@ -91,14 +106,21 @@ class discriminator(object):
       else: 
         encoder_input = random.choice(data_2)
         target.append([0, 1])
+      
       length = len(encoder_input)
-      encoder_pad = [data_utils.PAD_ID] * (self.max_length - length)
-    
-      encoder_inputs.append(list(encoder_input + encoder_pad))
-      encoder_length.append(length)
+   
+      if length > self.max_length:
+        encoder_inputs.append(encoder_input[:self.max_length])
+        encoder_length.append(self.max_length)
+      else:
+        encoder_pad = [data_utils.PAD_ID] * (self.max_length - length)
+        encoder_inputs.append(list(encoder_input + encoder_pad)) 
+        encoder_length.append(length)
+
+    # For test
 
     batch_length  = np.array(encoder_length, dtype = np.int32)
     batch_input   = np.array(encoder_inputs, dtype = np.int32)
     batch_targets = np.array(target, dtype = np.float32)
 
-  return batch_input, batch_length, batch_targets
+    return batch_input, batch_length, batch_targets
