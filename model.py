@@ -36,7 +36,8 @@ class discriminator(object):
     # Form embedding look up
     embeddings = tf.Variable(tf.random_uniform([VOCAB_SIZE, self.unit_size]))
     embedded = tf.nn.embedding_lookup(embeddings, self.encoder_inputs)
-     
+    #embedded = tf.one_hot(self.encoder_inputs, self.unit_size, axis = -1)
+
     # Specify sequence length
     self.seq_length = tf.placeholder(tf.int32, shape = [None])
     # Specify target, in this case, binary classification
@@ -44,6 +45,7 @@ class discriminator(object):
     # Use Dynamic rnn module
     self.outputs, self.final_state = rnn.dynamic_rnn(cell, embedded, self.seq_length, dtype = tf.float32)
     # for debug
+
     '''
     print(self.encoder_inputs.get_shape())
     print(self.unit_size) 
@@ -56,22 +58,26 @@ class discriminator(object):
     hidden_weight_1 = tf.Variable(tf.random_normal([4 * self.unit_size, 512], dtype = tf.float32))
     hidden_bias_1 = tf.Variable(tf.random_normal([512], dtype = tf.float32))
 
-    hidden_weight_2 = tf.Variable(tf.random_normal([512, 128], dtype = tf.float32))
-    hidden_bias_2= tf.Variable(tf.random_normal([128], dtype = tf.float32))
+    hidden_weight_2 = tf.Variable(tf.random_normal([512, 256], dtype = tf.float32))
+    hidden_bias_2= tf.Variable(tf.random_normal([256], dtype = tf.float32))
 
-    hidden_weight_3 = tf.Variable(tf.random_normal([128, 2], dtype = tf.float32))
+    hidden_weight_3 = tf.Variable(tf.random_normal([256, 2], dtype = tf.float32))
     hidden_bias_3= tf.Variable(tf.random_normal([2], dtype = tf.float32))
 
     out_layer_1 = tf.nn.relu(tf.matmul(self.final_state, hidden_weight_1) + hidden_bias_1)
     out_layer_2 = tf.nn.relu(tf.matmul(out_layer_1, hidden_weight_2) + hidden_bias_2)
     # Don't have to pass through softmax function
     out_layer_3 = tf.matmul(out_layer_2, hidden_weight_3) + hidden_bias_3
+    self.pre_loss = out_layer_3
     self.output = tf.nn.softmax(out_layer_3)
     # Define loss function
-    self.loss = tf.nn.softmax_cross_entropy_with_logits(out_layer_3, self.target)
-    optimizer = tf.train.GradientDescentOptimizer(0.1).minimize(self.loss)
+    loss = tf.nn.softmax_cross_entropy_with_logits(out_layer_3, self.target)
+    
+    self.loss = tf.reduce_mean(loss)
+    #optimizer = tf.train.GradientDescentOptimizer(0.1).minimize(self.loss)
+    self.optimizer = tf.train.AdamOptimizer(0.01).minimize(self.loss)
 
-  def step(self, session, encoder_inputs, seq_length, target):
+  def step(self, session, encoder_inputs, seq_length, target, predict):
     # Create input_feed
     # encoder_inputs' shape should be [batch, max_length, state_num]
     # seq_length's shape should be [batch] with int32
@@ -84,11 +90,20 @@ class discriminator(object):
     output_feed = [self.loss]
     output_feed.append(self.output)
 
+    # For test 
+    output_feed.append(self.encoder_inputs)
+    output_feed.append(self.seq_length)
+    output_feed.append(self.target)
+    output_feed.append(self.pre_loss)
+
     # Start running
-    outputs = session.run(output_feed, input_feed)
-   
+    if predict:  # predicting process
+      outputs = session.run(output_feed, input_feed)
+    else:        # training process
+      output_feed.append(self.optimizer)
+      outputs = session.run(output_feed, input_feed)
     # Return loss and output probabilities
-    return outputs[0], outputs[1]
+    return outputs[0], outputs[1], outputs[2], outputs[3], outputs[4], outputs[5]
 
   # data_1 is label 1 data, and data_2 is label 0 data
   # Both are tokenized data which are already been read
@@ -102,10 +117,10 @@ class discriminator(object):
     for _ in xrange(self.batch_size):
       if random.uniform(0, 1) < 0.5:
         encoder_input = random.choice(data_1)
-        target.append([1, 0])
+        target.append([1., 0.])
       else: 
         encoder_input = random.choice(data_2)
-        target.append([0, 1])
+        target.append([0., 1.])
       
       length = len(encoder_input)
    

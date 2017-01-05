@@ -35,8 +35,8 @@ def form_vocab_mapping(filename_1, filename_2, max_size):
     with gfile.GFile(filename_1, mode = 'rb') as f_1:
       with gfile.GFile(filename_2, mode = 'rb') as f_2:
         f = [f_1, f_2]
+        counter = 0
         for fil in f:
-          counter = 0
           for line in fil:
             counter += 1
             if counter % 100000 == 0:
@@ -50,6 +50,7 @@ def form_vocab_mapping(filename_1, filename_2, max_size):
                 vocab[word] = 1
       
         vocab_list = [_UNK, _PAD] + sorted(vocab, key = vocab.get, reverse = True)
+
         if len(vocab_list) > max_size:
           vocab_list = vocab_list[:max_size]
 
@@ -103,7 +104,6 @@ def prepare_whole_data(input_path_1, input_path_2, max_size):
   vocab_map = read_map(map_path)
   file_to_token(input_path_1, vocab_map)
   file_to_token(input_path_2, vocab_map)
-
 # Read token data from tokenized data
 def read_token_data(file_path):
   token_path = file_path + '.token'
@@ -133,4 +133,9 @@ if __name__ == "__main__":
   data_set_2 = read_token_data('corpus/movie_lines_cleaned.txt')
   print(len(data_set_1))
   print(data_set_1[0])
+
+def split(lst, ratio):
+  split_at = int(len(lst) * ratio)
+  
+  return lst[:split_at], lst[split_at:]
 
