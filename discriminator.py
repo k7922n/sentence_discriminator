@@ -13,7 +13,7 @@ import tensorflow as tf
 import data_utils
 import model
 
-MAX_SENTENCE_LENGTH = 20
+MAX_SENTENCE_LENGTH = 40
 BATCH_SIZE = 32
 UNIT_SIZE = 256
 NUM_LAYER = 2
@@ -75,16 +75,24 @@ def train():
         loss = 0
 
         # testing part, default 10 times...
-        test_count = 0
+        valid_count = 0
+        train_count = 0
         for _ in xrange(10):  
-          batch_input, batch_length, batch_target = model.get_batch(set_1_valid, set_2_valid)
-          _, output, _, _, answer, _ = model.step(sess, batch_input, batch_length, batch_target, True)
-          predict = np.argmax(output, axis = 1)
-          truth   = np.argmax(answer, axis = 1)
-          number = np.sum(predict == truth)
-          test_count += number
+          valid_input, valid_length, valid_target = model.get_batch(set_1_valid, set_2_valid)
+          train_input, train_length, train_target = model.get_batch(set_1_train, set_2_train)
+          _, valid_output, _, _, valid_answer, _ = model.step(sess, valid_input, valid_length, valid_target, True)
+          _, train_output, _, _, train_answer, _ = model.step(sess, train_input, train_length, train_target, True)
+          valid_predict = np.argmax(valid_output, axis = 1)
+          train_predict = np.argmax(train_output, axis = 1)
+          valid_truth   = np.argmax(valid_answer, axis = 1)
+          train_truth   = np.argmax(train_answer, axis = 1)
+          valid_number = np.sum(valid_predict == valid_truth)
+          train_number = np.sum(train_predict == train_truth)
+          valid_count += valid_number
+          train_count += train_number
         
-        print("Testing accuracy: %s" % str(float(test_count) / (10 * BATCH_SIZE)))
+        print("Valid set accuracy: %s" % str(float(valid_count) / (10 * BATCH_SIZE)))
+        print("Train set accuracy: %s" % str(float(train_count) / (10 * BATCH_SIZE)))
    
 
   
