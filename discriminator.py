@@ -37,7 +37,9 @@ def train():
   # TODO   path_2
   name_1 = sys.argv[1]
   name_2 = sys.argv[2]
-  data_utils.prepare_whole_data(name_1, name_2, 60000)
+
+  # you can choose which tokenizer to use, NLTK will take much more time to process...
+  data_utils.prepare_whole_data(name_1, name_2, 60000, nltk_tokenizer = True)
 
   with tf.Session() as sess:
     print("Creating model containing %s layers and %s units" % (NUM_LAYER, UNIT_SIZE)) 

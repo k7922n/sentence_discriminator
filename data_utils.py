@@ -4,6 +4,7 @@ from __future__ import print_function
 
 import re
 import sys
+import nltk
 
 from tensorflow.python.platform import gfile
 
@@ -21,7 +22,7 @@ def tokenizer(sentence):
   return [word for word in words if word]
 
 # Form vocab map (vocab to index) according to maxsize
-def form_vocab_mapping(filename_1, filename_2, max_size):
+def form_vocab_mapping(filename_1, filename_2, max_size, nltk_tokenizer):
   
   output_path = filename_1 + str(max_size) + '.mapping'
   
@@ -41,7 +42,11 @@ def form_vocab_mapping(filename_1, filename_2, max_size):
             counter += 1
             if counter % 100000 == 0:
               print("  Processing to line %s" % counter)
-            tokens = tokenizer(line)   
+ 
+            if nltk_tokenizer:
+              tokens = nltk.word_tokenize(line)
+            else:
+              tokens = tokenizer(line)   
      
             for word in tokens:
               if word in vocab:
@@ -74,13 +79,16 @@ def read_map(map_path):
   else:
     raise ValueError("Vocabulary file %s not found!", map_path)
 
-def convert_to_token(sentence, vocab_map):
+def convert_to_token(sentence, vocab_map, nltk_tokenizer):
   
-  words = tokenizer(sentence)  
+  if nltk_tokenizer:
+    words = nltk.word_tokenize(sentence)
+  else:
+    words = tokenizer(sentence)  
  
   return [vocab_map.get(w, UNK_ID) for w in words]
 
-def file_to_token(file_path, vocab_map):
+def file_to_token(file_path, vocab_map, nltk_tokenizer):
   output_path = file_path + ".token"
   if gfile.Exists(output_path):
     print("Token file %s has already existed!" % output_path)
@@ -94,16 +102,16 @@ def file_to_token(file_path, vocab_map):
           counter += 1
           if counter % 100000 == 0:
             print("  Tokenizing line %s" % counter)
-          token_ids = convert_to_token(line, vocab_map)
+          token_ids = convert_to_token(line, vocab_map, nltk_tokenizer)
 
           output_file.write(" ".join([str(tok) for tok in token_ids]) + '\n')
 
-def prepare_whole_data(input_path_1, input_path_2, max_size):
-  form_vocab_mapping(input_path_1, input_path_2, max_size)
+def prepare_whole_data(input_path_1, input_path_2, max_size, nltk_tokenizer):
+  form_vocab_mapping(input_path_1, input_path_2, max_size, nltk_tokenizer)
   map_path = input_path_1 + str(max_size) + '.mapping'  
   vocab_map = read_map(map_path)
-  file_to_token(input_path_1, vocab_map)
-  file_to_token(input_path_2, vocab_map)
+  file_to_token(input_path_1, vocab_map, nltk_tokenizer)
+  file_to_token(input_path_2, vocab_map, nltk_tokenizer)
 # Read token data from tokenized data
 def read_token_data(file_path):
   token_path = file_path + '.token'
