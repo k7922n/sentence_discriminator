@@ -45,7 +45,6 @@ class discriminator(object):
     # Use Dynamic rnn module
     self.outputs, self.final_state = rnn.dynamic_rnn(cell, embedded, self.seq_length, dtype = tf.float32)
     # for debug
-
     '''
     print(self.encoder_inputs.get_shape())
     print(self.unit_size) 
@@ -53,9 +52,8 @@ class discriminator(object):
     print(self.final_state.get_shape())
     exit()
     '''   
-
-    # It seems like dynamic_rnn final_state has 4 * num_unit dimension
-    hidden_weight_1 = tf.Variable(tf.random_normal([4 * self.unit_size, 512], dtype = tf.float32))
+    # It seems like dynamic_rnn final_state has 2 * num_layers * num_unit dimension
+    hidden_weight_1 = tf.Variable(tf.random_normal([2 * self.num_layers * self.unit_size, 512], dtype = tf.float32))
     hidden_bias_1 = tf.Variable(tf.random_normal([512], dtype = tf.float32))
 
     hidden_weight_2 = tf.Variable(tf.random_normal([512, 256], dtype = tf.float32))
